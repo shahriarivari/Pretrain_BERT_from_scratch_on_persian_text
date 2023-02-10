@@ -1,40 +1,55 @@
 from datasets import *
 from transformers import *
 from tokenizers import BertWordPieceTokenizer
+from datasets import load_dataset
 import os
 import json
-from datasets import load_dataset
 
 #LOADING DATASET
-#--------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------
 # You should just change this part in order to download your
 # parts of corpus. there are 126 training files and 3 test files 
 # all in .text format, the indices start from 0
+def data_files_dir(data_path : str ,train_file_idx : list , test_file_idx : list ):
+    """
+    This function gets a path to the local dataset and returns a list of files 
+    the naming of files is compatible with the dataset namings originaly made by the authors
+    if you have your dataset downloaded use the specified directory or you can use the link to the dataset
+    "https://huggingface.co/datasets/SLPL/naab/resolve/main/data/"
 
-indices = {
-    "train": [0],
-    "test": [2]
-}
-N_FILES = {
-    "train": 126,
-    "test": 3
-}
-# _BASE_URL = "https://huggingface.co/datasets/SLPL/naab/resolve/main/data/"
-_BASE_URL = "D:/Thesis_Project/dataset/"
-data_url = {
-    "train": [_BASE_URL + "train-{:05d}-of-{:05d}.txt".format(x, N_FILES["train"]) for x in range(N_FILES["train"])],
-    "test": [_BASE_URL + "test-{:05d}-of-{:05d}.txt".format(x, N_FILES["test"]) for x in range(N_FILES["test"])],
-}
-for index in indices['train']:
-    assert index < N_FILES['train']
-for index in indices['test']:
-    assert index < N_FILES['test']
-data_files = {
-    "train": [data_url['train'][i] for i in indices['train']],
-    "test": [data_url['test'][i] for i in indices['test']]
-}
+    Args: 
+        data_path: path to the dataset 
+        train_file_idx: which list of indexes of the train data to choose
+        test_file_idx: which list of indexes of the test data to choose 
+    
+    Returns:
+        A dictionary of train and test files directories
+    """
+    indices = {
+        "train": train_file_idx ,
+        "test" : test_file_idx
+    }
+    N_FILES = {
+        "train": 126,
+        "test": 3
+    }
+    _BASE_URL = data_path + "/"
+    data_url = {
+        "train": [_BASE_URL + "train-{:05d}-of-{:05d}.txt".format(x, N_FILES["train"]) for x in range(N_FILES["train"])],
+        "test": [_BASE_URL + "test-{:05d}-of-{:05d}.txt".format(x, N_FILES["test"]) for x in range(N_FILES["test"])],
+    }
+    for index in indices['train']:
+        assert index < N_FILES['train']
+    for index in indices['test']:
+        assert index < N_FILES['test']
+    data_files = {
+        "train": [data_url['train'][i] for i in indices['train']],
+        "test": [data_url['test'][i] for i in indices['test']]
+    }
+    return data_files
+    
+data_files =  data_files_dir(data_path = "D:/Thesis_Project/dataset",train_file_idx = [0],test_file_idx = [2])
 print(data_files)
-dataset = load_dataset('text', data_files=data_files, use_auth_token=True)
 #--------------------------------------------------------------------------------------------------------------------------------------
 
 #CONVERTING DATASET OBJECT TO FILES
@@ -61,8 +76,6 @@ dataset = load_dataset('text', data_files=data_files, use_auth_token=True)
 special_tokens = [
     "[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]", "<S>", "<T>"
 ]
-# if you want to train the tokenizer on both sets
-# files = ["train.txt", "test.txt"]
 # training the tokenizer on the training set
 files = data_files["train"]
 # 30,522 vocab is BERT's default vocab size, feel free to tweak
@@ -70,7 +83,7 @@ vocab_size = 30_522
 # maximum sequence length, lowering will result to faster training (when increasing batch size)
 max_length = 512
 # whether to truncate
-truncate_longer_samples = True
+truncate_longer_samples = False
 #--------------------------------------------------------------------------------------------------------------------------------------
 
 # TRAINING THE TOKENIZER
@@ -86,7 +99,7 @@ tokenizer.enable_truncation(max_length=max_length)
 
 # SAVING THE TOKENIZER
 #--------------------------------------------------------------------------------------------------------------------------------------
-model_path = "pretrained_bert"
+model_path = "pretrained_bert_tokenizer"
 
 # make the directory if not already there
 if not os.path.isdir(model_path):
@@ -133,31 +146,26 @@ def encode_without_truncation(examples):
 # the encode function will depend on the truncate_longer_samples variable
 encode = encode_with_truncation if truncate_longer_samples else encode_without_truncation
 
+# creating a Dataset object so the we can use the map() method 
+cache_dir = "D:/Thesis_Project/cache_dir"
+dataset = load_dataset('text', data_files=data_files,
+                        cache_dir = cache_dir,
+                        use_auth_token=True)
+
 # tokenizing the train dataset
 train_dataset = dataset["train"].map(encode, batched=True)
 # tokenizing the testing dataset
 test_dataset = dataset["test"].map(encode, batched=True)
+
 # SAVING TOKENIZED DATASET
 tokenized_dataset_path = "tokenized_dataset"
+
 if not os.path.isdir(tokenized_dataset_path):
     os.mkdir(tokenized_dataset_path)
 
 train_dataset.save_to_disk(tokenized_dataset_path)
 test_dataset.save_to_disk(tokenized_dataset_path)
 
-# data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="tf")
-# train_tf_dataset = train_dataset.to_tf_dataset(
-#     columns=["input_ids", "token_type_ids", "attention_mask"],
-#     batch_size=2,
-#     collate_fn=data_collator,
-#     shuffle=True
-# )
-# test_tf_dataset = test_dataset.to_tf_dataset(
-#     columns=["input_ids", "token_type_ids", "attention_mask"],
-#     batch_size=2,
-#     collate_fn=data_collator,
-#     shuffle=True
-# )
 if truncate_longer_samples:
   # remove other columns and set input_ids and attention_mask as PyTorch tensors
   train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask"])
@@ -226,7 +234,7 @@ model = BertForMaskedLM(config=model_config)
 
 data_collator = DataCollatorForLanguageModeling(
     tokenizer=tokenizer, mlm=True, mlm_probability=0.2
-)
+    )
 #--------------------------------------------------------------------------------------------------------------------------------------
 
 # INITIALIZE THE TRAINING ARFUMENTS
@@ -252,8 +260,8 @@ trainer = Trainer(
     model=model,
     args=training_args,
     data_collator=data_collator,
-    train_dataset=train_tf_dataset,
-    eval_dataset=test_tf_dataset,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset,
 )
 #--------------------------------------------------------------------------------------------------------------------------------------
 
