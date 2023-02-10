@@ -146,7 +146,7 @@ def encode_without_truncation(examples):
 # the encode function will depend on the truncate_longer_samples variable
 encode = encode_with_truncation if truncate_longer_samples else encode_without_truncation
 
-# creating a Dataset object so the we can use the map() method 
+# creating a Dataset object so that we can use the map() method 
 cache_dir = "D:/Thesis_Project/cache_dir"
 dataset = load_dataset('text', data_files=data_files,
                         cache_dir = cache_dir,
@@ -209,7 +209,7 @@ if not truncate_longer_samples:
   train_dataset = train_dataset.map(group_texts, batched=True,
                                     desc=f"Grouping texts in chunks of {max_length}")
   test_dataset = test_dataset.map(group_texts, batched=True,
-                                  desc=f"Grouping texts in chunks of {max_length}")
+                                    desc=f"Grouping texts in chunks of {max_length}")
   # convert them from lists to torch tensors
   train_dataset.set_format("torch")
   test_dataset.set_format("torch")
