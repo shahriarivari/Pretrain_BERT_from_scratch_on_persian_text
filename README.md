@@ -1,5 +1,5 @@
 # persian_sentiment_analysis
-Pre-train BERT and XLNet, and fine-tuning them for Persian sentiment analysis.
-First we pre-train the modles with a small portion of https://huggingface.co/datasets/SLPL/naab dataset , contating almost 130 GB of persian text,
-and then fine_tuning them on another dataset https://github.com/JoyeBright/DeepSentiPers. We are trying small sized models with the BERT and XLNet's architecture.
+Pre-train a smaller BERT, and fine-tuning them for Persian sentiment analysis. We are trying different teacher-student methods to train a smaller BERT model.
+We small portion of https://huggingface.co/datasets/SLPL/naab dataset , contating almost 130 GB of persian unlabeld processed text.
+For fine_tuning dataset we use https://github.com/JoyeBright/DeepSentiPers.
 still in progress...
