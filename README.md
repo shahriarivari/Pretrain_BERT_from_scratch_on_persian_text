@@ -7,7 +7,7 @@ The process of pre-training a language model from scratch involves these main st
     Utilize a Word Piece tokenizer specifically designed for BERT models to train on the provided text data.
 
 2- Tokenize the Dataset using the Trained Custom Tokenizer:
-    Apply the trained custom tokenizer to tokenize the dataset, converting tokens to input_ids.
+    Apply the trained custom tokenizer to tokenize the dataset.
 
 3- Configure and Initialize a Custom BERT Model with Masked Language Modeling Objective:
     Configure and initialize a custom BERT model, focusing on the Masked Language Modeling objective. Alternative objectives may be considered, but it is crucial to ensure compatibility with the appropriate dataset.
