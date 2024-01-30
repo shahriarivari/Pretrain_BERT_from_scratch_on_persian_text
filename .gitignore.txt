@@ -1,3 +1,0 @@
-/pretrained_bert_tokenizer
-/tokenized_dataset
-/wandb
